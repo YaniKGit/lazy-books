@@ -1,0 +1,2 @@
+# lazy-books
+training content
