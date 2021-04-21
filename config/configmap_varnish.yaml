@@ -1,0 +1,59 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: varnish-configmap
+data:
+  default.vcl: |
+    vcl 4.0;
+    backend server1 {
+      .host = "nginx-service.default.svc";
+      .port = "80";
+    }
+    sub vcl_deliver {
+      # Called before a cached object is delivered to the client.
+      set resp.http.X-Cache-Name = "my-varnish";
+      if (obj.hits > 0) { # Add debug header to see if it's a HIT/MISS and the number of hits, disable when not needed
+        set resp.http.X-Cache = "HIT";
+      } else {
+        set resp.http.X-Cache = "MISS";
+      }
+    }
+
+    # Access Control List to define which IPs can purge/ban content
+    acl purge {
+      "localhost";
+      "nginx-service.default.svc";
+      "10.0.163.50";
+    } 
+
+    sub vcl_backend_response {
+      set beresp.ttl = 3600s;
+    }
+
+    sub vcl_recv {
+      if (req.method == "BAN" || req.method == "PURGE")  {
+        # Same ACL check as above:
+        if (client.ip ~ purge) {
+          return(synth(405, client.ip + "PURGE or BAN is not allowed for this IP"));
+        }
+
+        if (req.method == "PURGE") {
+         return (purge);
+        }
+
+        ban("req.http.host ~ ." + " && req.url ~ .");
+        # Throw a synthetic page so the request won't go to the backend.
+        return(synth(200, "Ban added for erevything"));
+      }
+    }
+
+    sub vcl_deliver {
+      # Called before a cached object is delivered to the client.
+      set resp.http.X-Cache-Name = "my-varnish";
+
+      if (obj.hits > 0) { # Add debug header to see if it's a HIT/MISS and the number of hits, disable when not needed
+        set resp.http.X-Cache = "HIT";
+      } else {
+        set resp.http.X-Cache = "MISS";
+     }
+    }

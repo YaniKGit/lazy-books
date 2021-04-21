@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: yai-varnish
+  name: yai-varnish
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: yai-varnish
+  template:
+    metadata:
+      labels:
+        app: yai-varnish
+    spec:
+      containers:
+      - image: varnish:6.5.1
+        imagePullPolicy: IfNotPresent
+        name: my-varnish
+        ports:
+        - containerPort: 80
+          protocol: TCP
+        volumeMounts:
+        - mountPath: /etc/varnish
+          name: config
+          readOnly: true
+      volumes:
+      - configMap:
+          items:
+          - key: default.vcl
+            path: "default.vcl"
+          name: varnish-configmap
+        name: config
