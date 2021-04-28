@@ -15,7 +15,7 @@ spec:
         app: yai-nginx
     spec:
       containers:
-      - image: docker.io/yailiev/my-webserver:v3.3
+      - image: docker.io/yailiev/my-webserver:v3.4
         imagePullPolicy: Always
         name: yai-nginx
         ports:
